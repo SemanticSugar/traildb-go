@@ -1,8 +1,8 @@
 package tdb
 
 /*
-#cgo CFLAGS: -I/usr/local/include
-#cgo LDFLAGS: -L/usr/local/lib -ltraildb
+#cgo CFLAGS: -I/home/vtuulos/src/traildb/src
+#cgo LDFLAGS: -L/home/vtuulos/src/traildb/build -ltraildb
 
 #include <traildb.h>
 #include <stdlib.h>
@@ -24,13 +24,13 @@ import "errors"
 type TrailDB struct {
 	db *C.tdb
 
-	NumTrails     int
-	NumFields     int
-	NumEvents     int
-	minTimestamp  int
-	maxTimestamp  int
+	NumTrails     uint64
+	NumFields     uint64
+	NumEvents     uint64
+	minTimestamp  uint64
+	maxTimestamp  uint64
 	fieldNames    []string
-	fieldNameToId map[string]uint32
+	fieldNameToId map[string]uint64
 }
 
 type TrailDBConstructor struct {
@@ -49,7 +49,7 @@ type Trail struct {
 
 type Event struct {
 	trail     *Trail
-	Timestamp int64
+	Timestamp uint64
 	Fields    map[string]string
 	items     []C.tdb_item
 }
@@ -218,22 +218,22 @@ func Open(s string) (*TrailDB, error) {
 	if err != 0 {
 		return nil, errors.New(s + ": Failed to open traildb: " + errToString(err))
 	}
-	numFields := int(C.tdb_num_fields(db))
+	numFields := uint64(C.tdb_num_fields(db))
 	var fields []string
-	fieldNameToId := make(map[string]uint32)
+	fieldNameToId := make(map[string]uint64)
 	// numFields contains timestamp too
-	for i := 0; i <= int(numFields)-1; i++ {
+	for i := uint64(0); i <= uint64(numFields)-1; i++ {
 		fieldName := C.GoString(C.tdb_get_field_name(db, C.tdb_field(i)))
-		fieldNameToId[fieldName] = uint32(i)
+		fieldNameToId[fieldName] = uint64(i)
 		fields = append(fields, fieldName)
 	}
 	return &TrailDB{
 		db:            db,
-		NumTrails:     int(C.tdb_num_trails(db)),
-		NumEvents:     int(C.tdb_num_events(db)),
+		NumTrails:     uint64(C.tdb_num_trails(db)),
+		NumEvents:     uint64(C.tdb_num_events(db)),
 		NumFields:     numFields,
-		minTimestamp:  int(C.tdb_min_timestamp(db)),
-		maxTimestamp:  int(C.tdb_max_timestamp(db)),
+		minTimestamp:  uint64(C.tdb_min_timestamp(db)),
+		maxTimestamp:  uint64(C.tdb_max_timestamp(db)),
 		fieldNames:    fields,
 		fieldNameToId: fieldNameToId,
 	}, nil
@@ -251,15 +251,15 @@ func (db *TrailDB) GetTrailID(cookie string) (uint64, error) {
 	return uint64(trail_id), nil
 }
 
-func (db *TrailDB) Version() int {
-	return int(C.tdb_version(db.db))
+func (db *TrailDB) Version() uint64 {
+	return uint64(C.tdb_version(db.db))
 }
 
 func (db *TrailDB) Close() {
 	C.tdb_close(db.db)
 }
 
-func NewTrail(db *TrailDB, trail_id int) (*Trail, error) {
+func NewTrail(db *TrailDB, trail_id uint64) (*Trail, error) {
 	trail := C.tdb_cursor_new(db.db)
 	err := C.tdb_get_trail(trail, C.uint64_t(trail_id))
 	if err != 0 {
@@ -287,7 +287,7 @@ func (db *TrailDB) FindTrails(filters map[string]string) ([]*Trail, error) {
 	}
 
 	var result []*Trail
-	for i := 0; i < db.NumTrails; i++ {
+	for i := uint64(0); i < db.NumTrails; i++ {
 		trail, err := NewTrail(db, i)
 		if err != nil {
 			return nil, err
@@ -338,14 +338,14 @@ func (trail *Trail) NextEvent() *Event {
 	items := make([]C.tdb_item, int(event.num_items))
 
 	s := unsafe.Pointer(uintptr(unsafe.Pointer(event)) + C.sizeof_tdb_event)
-	for i := 0; i < int(event.num_items); i++ {
+	for i := uint64(0); i < uint64(event.num_items); i++ {
 		item := *(*C.tdb_item)(unsafe.Pointer(uintptr(s) + uintptr(i*C.sizeof_tdb_item)))
 		items[i] = item
 	}
 
 	return &Event{
 		trail:     trail,
-		Timestamp: int64(event.timestamp),
+		Timestamp: uint64(event.timestamp),
 		items:     items,
 	}
 }
@@ -370,26 +370,26 @@ func (evt *Event) ToMap() map[string]string {
 func (evt *Event) ToStruct(data interface{}) interface{} {
 	t := reflect.TypeOf(data)
 
-	struct_field_ids := make([]int, 0)
-	tdb_field_ids := make([]uint32, 0)
+	struct_field_ids := make([]uint64, 0)
+	tdb_field_ids := make([]uint64, 0)
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		field_name := field.Tag.Get("tdb")
 		if field_name != "" {
 			tdb_id := evt.trail.db.fieldNameToId[field_name]
-			struct_field_ids = append(struct_field_ids, i)
+			struct_field_ids = append(struct_field_ids, uint64(i))
 			tdb_field_ids = append(tdb_field_ids, tdb_id)
 		}
 	}
 
 	v := reflect.New(t)
-	v.Elem().Field(0).SetInt(evt.Timestamp)
+	v.Elem().Field(0).SetInt(int64(evt.Timestamp))
 	for k := 1; k < len(tdb_field_ids); k++ {
 		var vlength C.uint64_t
 		itemValue := C.tdb_get_item_value(evt.trail.db.db, evt.items[tdb_field_ids[k]-1], &vlength)
 		value := C.GoStringN(itemValue, C.int(vlength))
-		v.Elem().Field(struct_field_ids[k]).SetString(value)
+		v.Elem().Field(int(struct_field_ids[k])).SetString(value)
 	}
 	return v
 }
