@@ -259,16 +259,33 @@ func (db *TrailDB) Close() {
 	C.tdb_close(db.db)
 }
 
-func NewTrail(db *TrailDB, trail_id uint64) (*Trail, error) {
-	trail := C.tdb_cursor_new(db.db)
-	err := C.tdb_get_trail(trail, C.uint64_t(trail_id))
-	if err != 0 {
-		return nil, errors.New(errToString(err) + ": Failed to open Trail with id " + string(trail_id))
+func NewCursor(db *TrailDB) (*Trail, error) {
+	var err error = nil
+    var t *Trail = nil
+    trail := C.tdb_cursor_new(db.db)
+    if trail == nil{
+        err = errors.New("Could not create a new cursor (out of memory?)")
+    }else{
+        t = &Trail{db: db, trail: trail}
 	}
-	return &Trail{
-		db:    db,
-		trail: trail,
-	}, nil
+	return t, err
+}
+
+func GetTrail(trail *Trail, trail_id uint64) (error) {
+    err := C.tdb_get_trail(trail.trail, C.uint64_t(trail_id))
+	if err != 0 {
+		return errors.New(errToString(err) + ": Failed to open Trail with id " + string(trail_id))
+	}
+    return nil
+}
+
+func NewTrail(db *TrailDB, trail_id uint64) (*Trail, error) {
+    trail, err := NewCursor(db)
+	if err != nil{
+        return trail, err
+    }
+    err = GetTrail(trail, trail_id)
+    return trail, err
 }
 
 func (trail *Trail) Close() {
@@ -328,6 +345,14 @@ func (evt *Event) contains(filters []C.tdb_item) bool {
 		}
 	}
 	return false
+}
+
+func (trail *Trail) NextTimestamp() (uint64, bool) {
+	event := C.tdb_cursor_next(trail.trail)
+	if event == nil {
+		return 0, true
+	}
+    return uint64(event.timestamp), false
 }
 
 func (trail *Trail) NextEvent() *Event {
