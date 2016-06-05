@@ -1,9 +1,9 @@
 package main
 
 import (
-    "os"
-    "fmt"
-    "github.com/traildb/traildb-go"
+	"fmt"
+	"github.com/traildb/traildb-go"
+	"os"
 )
 
 var SESSION_LIMIT = uint64(30 * 60)
@@ -13,30 +13,30 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-    trail, err := tdb.NewCursor(db)
+	trail, err := tdb.NewCursor(db)
 	if err != nil {
 		panic(err.Error())
 	}
-    for i := uint64(0); i < db.NumTrails; i++ {
+	for i := uint64(0); i < db.NumTrails; i++ {
 		err := tdb.GetTrail(trail, i)
 		if err != nil {
 			panic(err.Error())
 		}
-        prev_time, _ := trail.NextTimestamp()
-        num_events := 1
-        num_sessions := 1
+		prev_time, _ := trail.NextTimestamp()
+		num_events := 1
+		num_sessions := 1
 		for {
 			tstamp, stop := trail.NextTimestamp()
 			if stop {
 				break
 			}
-            if tstamp - prev_time > SESSION_LIMIT {
-                num_sessions += 1
-            }
-            prev_time = tstamp
-            num_events += 1
+			if tstamp-prev_time > SESSION_LIMIT {
+				num_sessions += 1
+			}
+			prev_time = tstamp
+			num_events += 1
 		}
 		fmt.Printf("Trail[%d] Number of Sessions: %d Number of Events: %d\n",
-                   i, num_sessions, num_events)
-    }
+			i, num_sessions, num_events)
+	}
 }
