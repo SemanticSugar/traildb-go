@@ -1,8 +1,8 @@
 package tdb
 
 /*
-#cgo CFLAGS: -I/home/vtuulos/src/traildb/src
-#cgo LDFLAGS: -L/home/vtuulos/src/traildb/build -ltraildb
+#cgo CFLAGS: -I/usr/local/include
+#cgo LDFLAGS: -L/usr/local/lib -ltraildb
 
 #include <traildb.h>
 #include <stdlib.h>
