@@ -11,16 +11,16 @@ var SESSION_LIMIT = uint64(30 * 60)
 func main() {
 	db, err := tdb.Open(os.Args[1])
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 	trail, err := tdb.NewCursor(db)
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 	for i := uint64(0); i < db.NumTrails; i++ {
 		err := tdb.GetTrail(trail, i)
 		if err != nil {
-			panic(err.Error())
+			panic(err)
 		}
 		prev_time, _ := trail.NextTimestamp()
 		num_events := 1
