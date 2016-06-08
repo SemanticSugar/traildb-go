@@ -260,15 +260,11 @@ func (db *TrailDB) Close() {
 }
 
 func NewCursor(db *TrailDB) (*Trail, error) {
-	var err error = nil
-    var t *Trail = nil
     trail := C.tdb_cursor_new(db.db)
     if trail == nil{
-        err = errors.New("Could not create a new cursor (out of memory?)")
-    }else{
-        t = &Trail{db: db, trail: trail}
-	}
-	return t, err
+        return nil, errors.New("Could not create a new cursor (out of memory?)")
+    }
+    return &Trail{db: db, trail: trail}, nil
 }
 
 func GetTrail(trail *Trail, trail_id uint64) (error) {
