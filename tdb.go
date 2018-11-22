@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"unsafe"
 	"strings"
+	"unsafe"
 )
 
 /*
@@ -446,7 +446,7 @@ func (trail *Trail) NextEvent() *Event {
 }
 
 func (evt *Event) Print() {
-	fmt.Printf("%s: %s\n", evt.Timestamp, evt.ToMap())
+	fmt.Printf("%d: %s\n", evt.Timestamp, evt.ToMap())
 }
 
 func (evt *Event) Get(index int) string {
